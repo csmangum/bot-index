@@ -47,6 +47,10 @@ CHROMA_COLLECTION = "a360_bots"
 # Distance metric used by Chroma (cosine is recommended for sentence-transformers)
 CHROMA_DISTANCE_METRIC = "cosine"
 
+# Version tag for indexed document schema/ID strategy.
+# Bump this when chunk IDs/metadata contracts change in a way that requires reindex.
+INDEX_SCHEMA_VERSION = "2"
+
 # ---------------------------------------------------------------------------
 # Chunking / parsing
 # ---------------------------------------------------------------------------

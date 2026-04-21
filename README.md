@@ -235,6 +235,13 @@ The parser handles the following A360 JSON keys:
 
 **"Collection is empty"** → run `python main.py index --bots-dir example_bots` first.
 
+**"Index schema version mismatch"** → your local index was built with an older
+ID/schema strategy. Rebuild it with:
+
+```bash
+python main.py index --force
+```
+
 **Slow first run** → the embedding model (~90 MB) is downloaded on first use from HuggingFace Hub. Subsequent runs use the local cache (`~/.cache/huggingface`).
 
 **Out of memory on large collections** → reduce `DEFAULT_TOP_K` in `config.py` or switch to a smaller model.

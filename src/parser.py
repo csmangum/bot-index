@@ -36,7 +36,7 @@ The parser produces three tiers of chunks per bot:
 Each chunk is returned as a dict::
 
     {
-        "id":       str,          # deterministic MD5 hex ID
+        "id":       str,          # deterministic hash-based ID
         "text":     str,          # human-readable text fed to the embedder
         "metadata": dict[str, str]  # flat string metadata for Chroma
     }
@@ -98,7 +98,10 @@ def parse_bot_file(bot_path: Path) -> List[Chunk]:
     bot_version = data.get("version", "")
     bot_description = data.get("description", "")
     variables: List[dict] = data.get("variables", [])
-    commands: List[CommandNode] = data.get("commands") or data.get("actions") or []
+    if "commands" in data:
+        commands: List[CommandNode] = data.get("commands") or []
+    else:
+        commands = data.get("actions") or []
     # Note: A360 uses "commands" in most versions; older exports may use "actions".
 
     var_names = [v.get("name", "") for v in variables if v.get("name")]

@@ -54,6 +54,58 @@ def _get_chroma_client(db_path: Path):
     return chromadb.PersistentClient(path=str(db_path))
 
 
+def _collection_metadata(distance_metric: str, schema_version: str) -> dict:
+    """Build standard metadata for the Chroma collection."""
+    return {
+        "hnsw:space": distance_metric,
+        "index_schema_version": schema_version,
+    }
+
+
+def _ensure_collection_schema(
+    db_path: Path, collection_name: str, force_reindex: bool = False
+) -> None:
+    """Ensure collection metadata matches current index schema version.
+
+    If the on-disk collection schema is outdated and contains data, this
+    function requires ``force_reindex=True`` to avoid silent duplicate docs
+    when deterministic ID strategy changes.
+    """
+    from config import CHROMA_DISTANCE_METRIC, INDEX_SCHEMA_VERSION
+
+    client = _get_chroma_client(db_path)
+    expected_metadata = _collection_metadata(CHROMA_DISTANCE_METRIC, INDEX_SCHEMA_VERSION)
+
+    try:
+        collection = client.get_collection(collection_name)
+    except Exception:
+        client.create_collection(name=collection_name, metadata=expected_metadata)
+        _log.info("Created collection '%s' with schema version %s", collection_name, INDEX_SCHEMA_VERSION)
+        return
+
+    actual_metadata = collection.metadata or {}
+    actual_version = actual_metadata.get("index_schema_version")
+    if actual_version == INDEX_SCHEMA_VERSION:
+        return
+
+    count = collection.count()
+    if count > 0 and not force_reindex:
+        raise RuntimeError(
+            "Index schema version mismatch for collection "
+            f"'{collection_name}': expected {INDEX_SCHEMA_VERSION!r}, "
+            f"found {actual_version!r}. Run 'python main.py index --force' "
+            "to rebuild the index with the current ID schema."
+        )
+
+    client.delete_collection(collection_name)
+    client.create_collection(name=collection_name, metadata=expected_metadata)
+    _log.info(
+        "Recreated collection '%s' with schema version %s",
+        collection_name,
+        INDEX_SCHEMA_VERSION,
+    )
+
+
 def get_collection(db_path: Optional[Path] = None, collection_name: Optional[str] = None):
     """Get (or create) the Chroma collection.
 
@@ -64,7 +116,7 @@ def get_collection(db_path: Optional[Path] = None, collection_name: Optional[str
     Returns:
         A ``chromadb.Collection`` instance.
     """
-    from config import CHROMA_COLLECTION, CHROMA_DB_DIR, CHROMA_DISTANCE_METRIC
+    from config import CHROMA_COLLECTION, CHROMA_DB_DIR, CHROMA_DISTANCE_METRIC, INDEX_SCHEMA_VERSION
 
     db_path = db_path or CHROMA_DB_DIR
     collection_name = collection_name or CHROMA_COLLECTION
@@ -72,7 +124,7 @@ def get_collection(db_path: Optional[Path] = None, collection_name: Optional[str
     client = _get_chroma_client(db_path)
     collection = client.get_or_create_collection(
         name=collection_name,
-        metadata={"hnsw:space": CHROMA_DISTANCE_METRIC},
+        metadata=_collection_metadata(CHROMA_DISTANCE_METRIC, INDEX_SCHEMA_VERSION),
     )
     return collection
 
@@ -84,7 +136,7 @@ def clear_collection(db_path: Optional[Path] = None, collection_name: Optional[s
         db_path:         Override the default ChromaDB directory.
         collection_name: Override the default collection name.
     """
-    from config import CHROMA_COLLECTION, CHROMA_DB_DIR
+    from config import CHROMA_COLLECTION, CHROMA_DB_DIR, CHROMA_DISTANCE_METRIC, INDEX_SCHEMA_VERSION
 
     db_path = db_path or CHROMA_DB_DIR
     collection_name = collection_name or CHROMA_COLLECTION
@@ -96,11 +148,10 @@ def clear_collection(db_path: Optional[Path] = None, collection_name: Optional[s
         _log.info("Deleted existing collection '%s'", collection_name)
     except Exception as del_exc:  # collection may not exist yet
         _log.debug("Could not delete collection '%s': %s", collection_name, del_exc)
-    from config import CHROMA_DISTANCE_METRIC
 
     client.create_collection(
         name=collection_name,
-        metadata={"hnsw:space": CHROMA_DISTANCE_METRIC},
+        metadata=_collection_metadata(CHROMA_DISTANCE_METRIC, INDEX_SCHEMA_VERSION),
     )
     _log.info("Created fresh collection '%s'", collection_name)
 
@@ -202,15 +253,23 @@ def index_bots(
     Returns:
         A dict mapping ``bot_name → chunks_indexed``.
     """
-    from config import BOTS_DIR
+    from config import BOTS_DIR, CHROMA_COLLECTION, CHROMA_DB_DIR
     from src.parser import parse_bot_file
     from src.utils import find_bot_files
 
     bots_dir = bots_dir or BOTS_DIR
+    db_path = db_path or CHROMA_DB_DIR
+    collection_name = collection_name or CHROMA_COLLECTION
 
     if force_reindex:
         _log.info("force_reindex=True – clearing existing collection …")
         clear_collection(db_path, collection_name)
+    else:
+        _ensure_collection_schema(
+            db_path=db_path,
+            collection_name=collection_name,
+            force_reindex=False,
+        )
 
     bot_files = find_bot_files(bots_dir)
     if not bot_files:

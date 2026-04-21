@@ -267,7 +267,9 @@ def recommend_for_regression(
     if use_graph and bot_evidence:
         try:
             from src.graph import build_call_graph, get_transitive_callers
-
+        except ImportError as exc:
+            _log.warning("Graph expansion disabled: %s", exc)
+        else:
             call_graph = build_call_graph(collection=collection)
 
             for directly_matched_bot in list(bot_evidence.keys()):
@@ -289,8 +291,6 @@ def recommend_for_regression(
                                 "path": f"{caller_name} → {directly_matched_bot}",
                                 "hops": hop_distance,
                             }
-        except Exception as exc:
-            _log.warning("Graph expansion failed: %s", exc)
 
     # ── Step 5: Build final recommendation list ──────────────────────────
     recommendations: List[BotRecommendation] = []
