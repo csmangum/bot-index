@@ -98,7 +98,7 @@ def embed_texts(texts: List[str], model_name: str, device: str = "cpu") -> List[
 # ---------------------------------------------------------------------------
 
 def make_doc_id(bot_name: str, chunk_type: str, sequence_path: str) -> str:
-    """Create a deterministic UUID-like ID for a Chroma document.
+    """Create a deterministic ID for a Chroma document using SHA-256.
 
     Using a content hash guarantees idempotent re-indexing: the same chunk
     always gets the same ID so Chroma can upsert (overwrite) cleanly.
@@ -113,7 +113,7 @@ def make_doc_id(bot_name: str, chunk_type: str, sequence_path: str) -> str:
         A 32-character hex digest string.
     """
     raw = f"{bot_name}::{chunk_type}::{sequence_path}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
 # ---------------------------------------------------------------------------

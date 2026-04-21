@@ -191,7 +191,7 @@ def recommend_for_regression(
     Returns:
         A :class:`RegressionReport` with prioritised bot recommendations.
     """
-    from config import DEFAULT_TOP_K
+    from config import DEFAULT_TOP_K, UI_ELEMENT_MIN_TOP_K, UI_ELEMENT_TOP_K_DIVISOR
 
     top_k = top_k or DEFAULT_TOP_K
     ui_elements = ui_elements or []
@@ -214,7 +214,7 @@ def recommend_for_regression(
     for elem in ui_elements:
         elem_results = semantic_search(
             elem,
-            top_k=max(5, top_k // 2),
+            top_k=max(UI_ELEMENT_MIN_TOP_K, top_k // UI_ELEMENT_TOP_K_DIVISOR),
             collection=collection,
             model_name=model_name,
             device=device,
@@ -273,6 +273,7 @@ def recommend_for_regression(
             for directly_matched_bot in list(bot_evidence.keys()):
                 callers = get_transitive_callers(call_graph, directly_matched_bot)
                 for caller_name, hop_distance in callers.items():
+                    assert hop_distance > 0, "BFS hop_distance must be a positive integer"
                     if caller_name in bot_evidence:
                         # Already a direct hit – boost score instead
                         bot_evidence[caller_name]["score"] += 1.0 / hop_distance

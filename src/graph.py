@@ -151,7 +151,9 @@ def get_transitive_callers(
     Args:
         graph:    NetworkX DiGraph produced by :func:`build_call_graph`.
         bot_name: The target (callee) bot name.
-        max_hops: Maximum number of hops to traverse.  ``None`` → no limit.
+        max_hops: Maximum number of hops to traverse.
+                  ``None`` (the default) uses ``config.MAX_GRAPH_HOPS``.
+                  Pass a large integer (e.g. 999) for effectively unlimited traversal.
 
     Returns:
         Dict mapping caller_name → hop_distance (1 = direct caller).
@@ -171,7 +173,7 @@ def get_transitive_callers(
         for predecessor in graph.predecessors(current):
             if predecessor not in visited:
                 hop = depth + 1
-                if max_hops == 0 or hop <= max_hops:
+                if hop <= max_hops:
                     visited[predecessor] = hop
                     queue.append((predecessor, hop))
 

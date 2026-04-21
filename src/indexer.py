@@ -94,8 +94,8 @@ def clear_collection(db_path: Optional[Path] = None, collection_name: Optional[s
     try:
         client.delete_collection(collection_name)
         _log.info("Deleted existing collection '%s'", collection_name)
-    except Exception:  # collection may not exist yet
-        pass
+    except Exception as del_exc:  # collection may not exist yet
+        _log.debug("Could not delete collection '%s': %s", collection_name, del_exc)
     from config import CHROMA_DISTANCE_METRIC
 
     client.create_collection(

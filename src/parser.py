@@ -98,7 +98,8 @@ def parse_bot_file(bot_path: Path) -> List[Chunk]:
     bot_version = data.get("version", "")
     bot_description = data.get("description", "")
     variables: List[dict] = data.get("variables", [])
-    commands: List[CommandNode] = data.get("commands", data.get("actions", []))
+    commands: List[CommandNode] = data.get("commands") or data.get("actions") or []
+    # Note: A360 uses "commands" in most versions; older exports may use "actions".
 
     var_names = [v.get("name", "") for v in variables if v.get("name")]
 

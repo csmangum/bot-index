@@ -66,7 +66,13 @@ CONTEXT_OVERLAP_FRACTION = 0.15
 # Default number of vector-search results to return before graph expansion
 DEFAULT_TOP_K = 10
 
-# Maximum graph hops when computing transitive callers (0 = direct only)
+# When --ui-elements are provided, search for each element with this many results.
+# Uses max(UI_ELEMENT_MIN_TOP_K, DEFAULT_TOP_K // UI_ELEMENT_TOP_K_DIVISOR).
+UI_ELEMENT_MIN_TOP_K = 5
+UI_ELEMENT_TOP_K_DIVISOR = 2
+
+# Maximum graph hops when computing transitive callers.
+# Set to a large number (e.g. 999) for effectively unlimited traversal.
 MAX_GRAPH_HOPS = 5
 
 # Minimum cosine similarity score (0–1) to include a result.
