@@ -1,0 +1,246 @@
+{
+  "id": "bot-003",
+  "name": "ProcessCustomerData",
+  "description": "Extracts customer invoice data from the ACME Customer Portal, validates mandatory fields, applies business rules, and stores processed records to the output data table.",
+  "version": "1.5.3",
+  "variables": [
+    {
+      "name": "customerID",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "Customer ID to look up in the portal"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "Invoice number to process"
+    },
+    {
+      "name": "customerName",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "Extracted customer full name"
+    },
+    {
+      "name": "invoiceAmount",
+      "type": "NUMBER",
+      "defaultValue": "0",
+      "description": "Extracted total invoice amount"
+    },
+    {
+      "name": "dataProcessed",
+      "type": "STRING",
+      "defaultValue": "PENDING",
+      "description": "Output status: SUCCESS or FAILED"
+    },
+    {
+      "name": "rowIndex",
+      "type": "NUMBER",
+      "defaultValue": "0",
+      "description": "Current data table row index"
+    }
+  ],
+  "commands": [
+    {
+      "id": "cmd-003-01",
+      "type": "ActionNode",
+      "sequence": 1,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Dashboard_SearchBox",
+        "selector": "input[name='customerSearch']",
+        "windowTitle": "Customer Portal - Dashboard",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-003-02",
+      "type": "ActionNode",
+      "sequence": 2,
+      "properties": {
+        "commandName": "Set text",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Dashboard_SearchBox",
+        "selector": "input[name='customerSearch']",
+        "windowTitle": "Customer Portal - Dashboard",
+        "selectorType": "CSS",
+        "text": "$customerID$",
+        "clearFirst": true
+      }
+    },
+    {
+      "id": "cmd-003-03",
+      "type": "ActionNode",
+      "sequence": 3,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Dashboard_SearchButton",
+        "selector": "button.search-btn",
+        "windowTitle": "Customer Portal - Dashboard",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-003-04",
+      "type": "ActionNode",
+      "sequence": 4,
+      "properties": {
+        "commandName": "Wait for element",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerResults_Table",
+        "selector": "table#customer-results",
+        "windowTitle": "Customer Portal - Search Results",
+        "selectorType": "CSS",
+        "timeout": 20
+      }
+    },
+    {
+      "id": "cmd-003-05",
+      "type": "ActionNode",
+      "sequence": 5,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerResults_FirstRow",
+        "selector": "table#customer-results tbody tr:first-child td.customer-name a",
+        "windowTitle": "Customer Portal - Search Results",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-003-06",
+      "type": "ActionNode",
+      "sequence": 6,
+      "properties": {
+        "commandName": "Get element property",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerDetail_NameField",
+        "selector": "span#customer-full-name",
+        "windowTitle": "Customer Portal - Customer Details",
+        "selectorType": "CSS",
+        "property": "innerText",
+        "outputVariable": "customerName"
+      }
+    },
+    {
+      "id": "cmd-003-07",
+      "type": "ActionNode",
+      "sequence": 7,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerDetail_InvoicesTab",
+        "selector": "a[data-tab='invoices']",
+        "windowTitle": "Customer Portal - Customer Details",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-003-08",
+      "type": "LoopNode",
+      "sequence": 8,
+      "properties": {
+        "commandName": "Loop",
+        "loopType": "For each row",
+        "tableVariable": "invoiceTable",
+        "indexVariable": "rowIndex"
+      },
+      "children": [
+        {
+          "id": "cmd-003-08-01",
+          "type": "ActionNode",
+          "sequence": 1,
+          "properties": {
+            "commandName": "Get element property",
+            "packageName": "Recorder",
+            "objectRepositoryName": "InvoiceList_AmountCell",
+            "selector": "table#invoice-list tr:nth-child($rowIndex$) td.invoice-amount",
+            "windowTitle": "Customer Portal - Customer Details",
+            "selectorType": "CSS",
+            "property": "innerText",
+            "outputVariable": "invoiceAmount"
+          }
+        },
+        {
+          "id": "cmd-003-08-02",
+          "type": "ActionNode",
+          "sequence": 2,
+          "properties": {
+            "commandName": "Get element property",
+            "packageName": "Recorder",
+            "objectRepositoryName": "InvoiceList_NumberCell",
+            "selector": "table#invoice-list tr:nth-child($rowIndex$) td.invoice-number",
+            "windowTitle": "Customer Portal - Customer Details",
+            "selectorType": "CSS",
+            "property": "innerText",
+            "outputVariable": "currentInvoiceNum"
+          }
+        },
+        {
+          "id": "cmd-003-08-03",
+          "type": "ConditionNode",
+          "sequence": 3,
+          "properties": {
+            "commandName": "If",
+            "condition": "$currentInvoiceNum$ = $invoiceNumber$"
+          },
+          "children": [
+            {
+              "id": "cmd-003-08-03-01",
+              "type": "ActionNode",
+              "sequence": 1,
+              "properties": {
+                "commandName": "Data table: Set cell",
+                "packageName": "Data table",
+                "tableName": "processedData",
+                "column": "CustomerName",
+                "value": "$customerName$"
+              }
+            },
+            {
+              "id": "cmd-003-08-03-02",
+              "type": "ActionNode",
+              "sequence": 2,
+              "properties": {
+                "commandName": "Data table: Set cell",
+                "packageName": "Data table",
+                "tableName": "processedData",
+                "column": "InvoiceAmount",
+                "value": "$invoiceAmount$"
+              }
+            },
+            {
+              "id": "cmd-003-08-03-03",
+              "type": "ActionNode",
+              "sequence": 3,
+              "properties": {
+                "commandName": "String: Assign",
+                "packageName": "String",
+                "variableName": "dataProcessed",
+                "value": "SUCCESS"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmd-003-09",
+      "type": "ActionNode",
+      "sequence": 9,
+      "properties": {
+        "commandName": "Log",
+        "packageName": "Log to file",
+        "message": "Data processing complete for customer $customerID$, invoice $invoiceNumber$. Status: $dataProcessed$",
+        "logLevel": "INFO"
+      }
+    }
+  ]
+}

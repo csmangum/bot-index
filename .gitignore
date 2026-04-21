@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ChromaDB persistent storage (local vector database - not committed)
+chroma_db/
+
+# Bot files: ignore JSON contents but keep the directory tracked via .gitkeep
+bots/*.json
+bots/**/*.json

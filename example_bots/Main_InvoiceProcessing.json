@@ -1,0 +1,152 @@
+{
+  "id": "bot-001",
+  "name": "Main_InvoiceProcessing",
+  "description": "Orchestrator bot for end-to-end invoice processing workflow. Logs into the customer portal, processes customer data, and generates the final invoice report.",
+  "version": "1.2.0",
+  "variables": [
+    {
+      "name": "invoiceNumber",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "The invoice number to process"
+    },
+    {
+      "name": "customerID",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "The customer ID for the invoice"
+    },
+    {
+      "name": "processingStatus",
+      "type": "STRING",
+      "defaultValue": "PENDING",
+      "description": "Current processing status"
+    },
+    {
+      "name": "outputFolderPath",
+      "type": "STRING",
+      "defaultValue": "C:\\Output\\Invoices",
+      "description": "Destination folder for generated reports"
+    }
+  ],
+  "commands": [
+    {
+      "id": "cmd-001-01",
+      "type": "ActionNode",
+      "sequence": 1,
+      "properties": {
+        "commandName": "Log",
+        "packageName": "Log to file",
+        "message": "Starting invoice processing for invoice: $invoiceNumber$ customer: $customerID$",
+        "logLevel": "INFO"
+      }
+    },
+    {
+      "id": "cmd-001-02",
+      "type": "TaskBot: Run",
+      "sequence": 2,
+      "properties": {
+        "commandName": "Run Task",
+        "packageName": "TaskBot",
+        "taskBotPath": "bots/LoginToCustomerPortal",
+        "inputVariables": {
+          "username": "$customerID$",
+          "targetURL": "https://portal.acme-corp.com/login"
+        },
+        "outputVariables": {
+          "loginStatus": "processingStatus"
+        }
+      }
+    },
+    {
+      "id": "cmd-001-03",
+      "type": "ConditionNode",
+      "sequence": 3,
+      "properties": {
+        "commandName": "If",
+        "condition": "$processingStatus$ = \"SUCCESS\""
+      },
+      "children": [
+        {
+          "id": "cmd-001-03-01",
+          "type": "TaskBot: Run",
+          "sequence": 1,
+          "properties": {
+            "commandName": "Run Task",
+            "packageName": "TaskBot",
+            "taskBotPath": "bots/ProcessCustomerData",
+            "inputVariables": {
+              "customerID": "$customerID$",
+              "invoiceNumber": "$invoiceNumber$"
+            },
+            "outputVariables": {
+              "dataProcessed": "processingStatus"
+            }
+          }
+        },
+        {
+          "id": "cmd-001-03-02",
+          "type": "TaskBot: Run",
+          "sequence": 2,
+          "properties": {
+            "commandName": "Run Task",
+            "packageName": "TaskBot",
+            "taskBotPath": "bots/GenerateReport",
+            "inputVariables": {
+              "invoiceNumber": "$invoiceNumber$",
+              "outputPath": "$outputFolderPath$"
+            },
+            "outputVariables": {
+              "reportGenerated": "processingStatus"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmd-001-04",
+      "type": "ConditionNode",
+      "sequence": 4,
+      "properties": {
+        "commandName": "Else",
+        "condition": ""
+      },
+      "children": [
+        {
+          "id": "cmd-001-04-01",
+          "type": "ActionNode",
+          "sequence": 1,
+          "properties": {
+            "commandName": "Log",
+            "packageName": "Log to file",
+            "message": "Login failed. Aborting invoice processing for $invoiceNumber$.",
+            "logLevel": "ERROR"
+          }
+        },
+        {
+          "id": "cmd-001-04-02",
+          "type": "ActionNode",
+          "sequence": 2,
+          "properties": {
+            "commandName": "Email",
+            "packageName": "Email",
+            "to": "ops-team@acme-corp.com",
+            "subject": "Invoice Processing Failed - $invoiceNumber$",
+            "body": "The invoice processing workflow failed at login. Invoice: $invoiceNumber$, Customer: $customerID$"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmd-001-05",
+      "type": "ActionNode",
+      "sequence": 5,
+      "properties": {
+        "commandName": "Log",
+        "packageName": "Log to file",
+        "message": "Invoice processing completed. Final status: $processingStatus$",
+        "logLevel": "INFO"
+      }
+    }
+  ]
+}
