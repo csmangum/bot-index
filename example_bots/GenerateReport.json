@@ -1,0 +1,232 @@
+{
+  "id": "bot-004",
+  "name": "GenerateReport",
+  "description": "Generates a formatted PDF invoice report. Navigates to the reporting module of the Customer Portal, applies filters for the specified invoice, exports the report, and saves it to the designated output folder.",
+  "version": "1.1.0",
+  "variables": [
+    {
+      "name": "invoiceNumber",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "Invoice number to include in the report"
+    },
+    {
+      "name": "outputPath",
+      "type": "STRING",
+      "defaultValue": "C:\\Output\\Invoices",
+      "description": "Folder path where the PDF report will be saved"
+    },
+    {
+      "name": "reportFileName",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "Generated file name of the exported report"
+    },
+    {
+      "name": "reportGenerated",
+      "type": "STRING",
+      "defaultValue": "PENDING",
+      "description": "Output status: SUCCESS or FAILED"
+    },
+    {
+      "name": "exportTimeout",
+      "type": "NUMBER",
+      "defaultValue": "60",
+      "description": "Maximum seconds to wait for PDF export to complete"
+    }
+  ],
+  "commands": [
+    {
+      "id": "cmd-004-01",
+      "type": "ActionNode",
+      "sequence": 1,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Dashboard_ReportsMenuLink",
+        "selector": "nav a[href='/reports']",
+        "windowTitle": "Customer Portal - Dashboard",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-004-02",
+      "type": "ActionNode",
+      "sequence": 2,
+      "properties": {
+        "commandName": "Wait for window",
+        "packageName": "Window",
+        "windowTitle": "Customer Portal - Reports",
+        "timeout": 15
+      }
+    },
+    {
+      "id": "cmd-004-03",
+      "type": "ActionNode",
+      "sequence": 3,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Reports_InvoiceReportLink",
+        "selector": "a#invoice-report-type",
+        "windowTitle": "Customer Portal - Reports",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-004-04",
+      "type": "ActionNode",
+      "sequence": 4,
+      "properties": {
+        "commandName": "Set text",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Reports_InvoiceNumberFilter",
+        "selector": "input#report-invoice-filter",
+        "windowTitle": "Customer Portal - Reports",
+        "selectorType": "CSS",
+        "text": "$invoiceNumber$",
+        "clearFirst": true
+      }
+    },
+    {
+      "id": "cmd-004-05",
+      "type": "ActionNode",
+      "sequence": 5,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Reports_ApplyFilterButton",
+        "selector": "button#apply-report-filter",
+        "windowTitle": "Customer Portal - Reports",
+        "selectorType": "CSS",
+        "clickType": "Single"
+      }
+    },
+    {
+      "id": "cmd-004-06",
+      "type": "ActionNode",
+      "sequence": 6,
+      "properties": {
+        "commandName": "Wait for element",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Reports_ResultsTable",
+        "selector": "table#report-results",
+        "windowTitle": "Customer Portal - Reports",
+        "selectorType": "CSS",
+        "timeout": 20
+      }
+    },
+    {
+      "id": "cmd-004-07",
+      "type": "ActionNode",
+      "sequence": 7,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "Reports_ExportPDFButton",
+        "selector": "button#export-pdf-btn",
+        "windowTitle": "Customer Portal - Reports",
+        "selectorType": "CSS",
+        "clickType": "Single",
+        "attributes": {
+          "aria-label": "Export as PDF"
+        }
+      }
+    },
+    {
+      "id": "cmd-004-08",
+      "type": "ActionNode",
+      "sequence": 8,
+      "properties": {
+        "commandName": "Wait for file",
+        "packageName": "File",
+        "folderPath": "$outputPath$",
+        "filePattern": "Invoice_$invoiceNumber$*.pdf",
+        "timeout": "$exportTimeout$",
+        "outputVariable": "reportFileName"
+      }
+    },
+    {
+      "id": "cmd-004-09",
+      "type": "ConditionNode",
+      "sequence": 9,
+      "properties": {
+        "commandName": "If",
+        "condition": "$reportFileName$ != \"\""
+      },
+      "children": [
+        {
+          "id": "cmd-004-09-01",
+          "type": "ActionNode",
+          "sequence": 1,
+          "properties": {
+            "commandName": "String: Assign",
+            "packageName": "String",
+            "variableName": "reportGenerated",
+            "value": "SUCCESS"
+          }
+        },
+        {
+          "id": "cmd-004-09-02",
+          "type": "ActionNode",
+          "sequence": 2,
+          "properties": {
+            "commandName": "Log",
+            "packageName": "Log to file",
+            "message": "Report successfully generated: $reportFileName$ at $outputPath$",
+            "logLevel": "INFO"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmd-004-10",
+      "type": "ConditionNode",
+      "sequence": 10,
+      "properties": {
+        "commandName": "Else",
+        "condition": ""
+      },
+      "children": [
+        {
+          "id": "cmd-004-10-01",
+          "type": "ActionNode",
+          "sequence": 1,
+          "properties": {
+            "commandName": "String: Assign",
+            "packageName": "String",
+            "variableName": "reportGenerated",
+            "value": "FAILED"
+          }
+        },
+        {
+          "id": "cmd-004-10-02",
+          "type": "ActionNode",
+          "sequence": 2,
+          "properties": {
+            "commandName": "Click",
+            "packageName": "Recorder",
+            "objectRepositoryName": "Reports_ErrorDialog_CloseButton",
+            "selector": "div.modal-dialog button.close-btn",
+            "windowTitle": "Customer Portal - Reports",
+            "selectorType": "CSS",
+            "clickType": "Single"
+          }
+        },
+        {
+          "id": "cmd-004-10-03",
+          "type": "ActionNode",
+          "sequence": 3,
+          "properties": {
+            "commandName": "Log",
+            "packageName": "Log to file",
+            "message": "Report generation FAILED for invoice $invoiceNumber$. No file found in $outputPath$",
+            "logLevel": "ERROR"
+          }
+        }
+      ]
+    }
+  ]
+}

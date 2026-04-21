@@ -1,0 +1,190 @@
+{
+  "id": "bot-002",
+  "name": "LoginToCustomerPortal",
+  "description": "Handles secure login to the ACME Customer Portal web application. Navigates to the login page, enters credentials, clicks the login button, and verifies successful authentication.",
+  "version": "2.0.1",
+  "variables": [
+    {
+      "name": "username",
+      "type": "STRING",
+      "defaultValue": "",
+      "description": "The username / customer ID for portal login"
+    },
+    {
+      "name": "password",
+      "type": "CREDENTIAL",
+      "defaultValue": "",
+      "description": "Encrypted credential for portal login"
+    },
+    {
+      "name": "targetURL",
+      "type": "STRING",
+      "defaultValue": "https://portal.acme-corp.com/login",
+      "description": "URL of the customer portal login page"
+    },
+    {
+      "name": "loginStatus",
+      "type": "STRING",
+      "defaultValue": "PENDING",
+      "description": "Output variable - SUCCESS or FAILED"
+    },
+    {
+      "name": "maxRetries",
+      "type": "NUMBER",
+      "defaultValue": "3",
+      "description": "Maximum number of login retry attempts"
+    }
+  ],
+  "commands": [
+    {
+      "id": "cmd-002-01",
+      "type": "ActionNode",
+      "sequence": 1,
+      "properties": {
+        "commandName": "Open browser",
+        "packageName": "Browser",
+        "url": "$targetURL$",
+        "browserType": "Chrome",
+        "windowTitle": "Customer Portal - Login"
+      }
+    },
+    {
+      "id": "cmd-002-02",
+      "type": "ActionNode",
+      "sequence": 2,
+      "properties": {
+        "commandName": "Wait for window",
+        "packageName": "Window",
+        "windowTitle": "Customer Portal - Login",
+        "timeout": 30
+      }
+    },
+    {
+      "id": "cmd-002-03",
+      "type": "ActionNode",
+      "sequence": 3,
+      "properties": {
+        "commandName": "Set text",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerPortal_UsernameField",
+        "selector": "input#username",
+        "windowTitle": "Customer Portal - Login",
+        "selectorType": "CSS",
+        "text": "$username$",
+        "clearFirst": true
+      }
+    },
+    {
+      "id": "cmd-002-04",
+      "type": "ActionNode",
+      "sequence": 4,
+      "properties": {
+        "commandName": "Set text",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerPortal_PasswordField",
+        "selector": "input#password",
+        "windowTitle": "Customer Portal - Login",
+        "selectorType": "CSS",
+        "text": "$password$",
+        "clearFirst": true,
+        "sensitive": true
+      }
+    },
+    {
+      "id": "cmd-002-05",
+      "type": "ActionNode",
+      "sequence": 5,
+      "properties": {
+        "commandName": "Click",
+        "packageName": "Recorder",
+        "objectRepositoryName": "CustomerPortal_LoginButton",
+        "selector": "button#login-submit",
+        "windowTitle": "Customer Portal - Login",
+        "selectorType": "CSS",
+        "clickType": "Single",
+        "mouseButton": "Left"
+      }
+    },
+    {
+      "id": "cmd-002-06",
+      "type": "ActionNode",
+      "sequence": 6,
+      "properties": {
+        "commandName": "Wait for window",
+        "packageName": "Window",
+        "windowTitle": "Customer Portal - Dashboard",
+        "timeout": 30
+      }
+    },
+    {
+      "id": "cmd-002-07",
+      "type": "ConditionNode",
+      "sequence": 7,
+      "properties": {
+        "commandName": "If",
+        "condition": "Window exists: Customer Portal - Dashboard"
+      },
+      "children": [
+        {
+          "id": "cmd-002-07-01",
+          "type": "ActionNode",
+          "sequence": 1,
+          "properties": {
+            "commandName": "String: Assign",
+            "packageName": "String",
+            "variableName": "loginStatus",
+            "value": "SUCCESS"
+          }
+        },
+        {
+          "id": "cmd-002-07-02",
+          "type": "ActionNode",
+          "sequence": 2,
+          "properties": {
+            "commandName": "Log",
+            "packageName": "Log to file",
+            "message": "Successfully logged in as $username$ to Customer Portal - Dashboard",
+            "logLevel": "INFO"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmd-002-08",
+      "type": "ConditionNode",
+      "sequence": 8,
+      "properties": {
+        "commandName": "Else",
+        "condition": ""
+      },
+      "children": [
+        {
+          "id": "cmd-002-08-01",
+          "type": "ActionNode",
+          "sequence": 1,
+          "properties": {
+            "commandName": "Get element property",
+            "packageName": "Recorder",
+            "objectRepositoryName": "CustomerPortal_ErrorMessage",
+            "selector": "div.error-message",
+            "windowTitle": "Customer Portal - Login",
+            "selectorType": "CSS",
+            "property": "text",
+            "outputVariable": "errorText"
+          }
+        },
+        {
+          "id": "cmd-002-08-02",
+          "type": "ActionNode",
+          "sequence": 2,
+          "properties": {
+            "commandName": "String: Assign",
+            "packageName": "String",
+            "variableName": "loginStatus",
+            "value": "FAILED"
+          }
+        }
+      ]
+    }
+  ]
+}
